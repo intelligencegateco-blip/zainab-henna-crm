@@ -1,0 +1,75 @@
+/*
+ * Zainab Henna — brand tokens.
+ *
+ * Colors were sampled from the logo artwork:
+ *   logo gold   #A07D4C  (average of the calligraphy strokes)
+ *   logo black  #000000  (background)
+ * Change the brand here; every component reads these variables.
+ */
+:root {
+  /* Brand */
+  --brand-black: #000000;
+  --brand-gold: #a07d4c; /* exact logo gold: fills, icons, highlights */
+  --brand-gold-deep: #7a5c33; /* gold text/links on light backgrounds (AA contrast) */
+  --brand-gold-light: #c9a877; /* gold text on black */
+  --brand-gold-hover: #8f6f42;
+  --brand-gold-wash: #f2e8d8; /* selected rows, active chips */
+  --brand-gold-mist: #f8f2e8;
+
+  /* Neutrals (warm, tuned to sit beside the gold) */
+  --charcoal: #1d1a16;
+  --charcoal-2: #2b2621;
+  --sidebar-text: #cfc6b8;
+  --sidebar-muted: #8c8274;
+  --sidebar-hover: #15120e;
+
+  --paper: #f6f3ee; /* app background */
+  --surface: #fffdf9; /* panels, tables, dialogs */
+  --surface-sunk: #f1ece4; /* inputs on hover, table headers */
+  --line: #e6dfd3;
+  --line-strong: #d3c8b6;
+
+  --text: #1d1a16;
+  --text-2: #5a5249;
+  --text-muted: #857b6f;
+  --text-on-dark: #f4efe7;
+
+  /* Status (reserved; always paired with a label or icon) */
+  --ok: #2e7650;
+  --ok-wash: #e4f1e8;
+  --warn: #9a6408;
+  --warn-wash: #fbefd6;
+  --danger: #b0322a;
+  --danger-wash: #f8e3e0;
+  --info: #2f5b9a;
+  --info-wash: #e3ebf6;
+  --neutral-wash: #ece7df;
+
+  /* Type */
+  --font-display: 'Marcellus', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-ui: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.8438rem; /* 13.5 */
+  --text-md: 0.9375rem; /* 15 body */
+  --text-lg: 1.0625rem; /* 17 */
+  --text-xl: 1.3125rem; /* 21 */
+  --text-2xl: 1.625rem; /* 26 */
+  --text-3xl: 2.125rem; /* 34 */
+  --text-4xl: 2.75rem; /* 44 */
+
+  /* Shape — radius follows hierarchy: controls < panels < dialogs */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-pop: 0 12px 32px -12px rgba(29, 26, 22, 0.28), 0 2px 6px rgba(29, 26, 22, 0.08);
+  --shadow-raise: 0 1px 0 rgba(29, 26, 22, 0.04);
+
+  --focus: 0 0 0 3px rgba(160, 125, 76, 0.45);
+
+  --sidebar-width: 248px;
+  --topbar-height: 64px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
