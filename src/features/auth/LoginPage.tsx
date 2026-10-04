@@ -62,7 +62,7 @@ export function LoginPage() {
           <Button type="submit" variant="primary" block loading={busy}>
             Sign in
           </Button>
-          {env.dataSource === 'local' && env.showDemoLogin && (
+          {env.dataSource === 'local' && env.demoLoginEnabled && env.showDemoLogin && (
             <div className="login-demo">
               <p>
                 Demo access: <code>{env.demoEmail}</code> / <code>{env.demoPassword}</code>

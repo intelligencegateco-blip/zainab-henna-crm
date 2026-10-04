@@ -82,7 +82,9 @@ npm run build      # type-checks, then outputs static files to dist/
 npm run preview    # serves dist/ locally
 ```
 
-**Live demo:** https://mistyrose-wildcat-480165.hostingersite.com (Hostinger, static build; the sign-in hint is hidden there; ask the owner for the demo password).
+**Live demo:** https://mistyrose-wildcat-480165.hostingersite.com (Hostinger, static build; sign in with the owner account, the demo account is turned off there).
+
+**Owner account.** Run `npm run owner:credential -- you@example.com` to generate a strong password and its hash. Put the printed `VITE_OWNER_CREDENTIAL=...` line (plus `VITE_OWNER_NAME` and `VITE_ENABLE_DEMO_LOGIN=false`) in `.env.production.local`, then rebuild and redeploy. To change the password, run it again. Only the hash ships in the app; the session is browser-only until a real auth backend exists.
 
 `dist/` is a static single-page app. `public/.htaccess` handles routing on Apache/LiteSpeed hosts such as Hostinger. When hosting it, rewrite unknown paths to `index.html` so links like `/leads/C-1005` work. (Netlify: `_redirects`; Vercel and Hostinger: an SPA rewrite rule.)
 
@@ -110,6 +112,9 @@ All settings are read in [`src/config/env.ts`](src/config/env.ts), and defaults 
 | `VITE_MOCK_LATENCY_MS` | `250` | Simulated network delay for local data (keeps loading states realistic) |
 | `VITE_DEMO_EMAIL` / `VITE_DEMO_PASSWORD` | see above | Demo sign-in until real authentication exists |
 | `VITE_SHOW_DEMO_LOGIN` | `true` | Show the demo credentials on the sign-in page; set `false` for public demos |
+| `VITE_ENABLE_DEMO_LOGIN` | `true` | Allow the shared demo account; set `false` on public builds |
+| `VITE_OWNER_CREDENTIAL` | empty | Owner sign-in (PBKDF2 hash of email + password) from `npm run owner:credential` |
+| `VITE_OWNER_NAME` | `Owner` | Name shown for the owner in the greeting and sidebar |
 | `VITE_BUSINESS_NAME` | `Zainab Henna` | Default business name in seed data |
 | `VITE_DEFAULT_EXCHANGE_RATE` | `190` | Default Bs per USD for seed data (editable in Settings) |
 

@@ -11,7 +11,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:all": "npm run typecheck && npm run lint && npm test && npm run test:e2e"
+    "test:all": "npm run typecheck && npm run lint && npm test && npm run test:e2e",
+    "owner:credential": "node scripts/owner-credential.mjs"
   },
   "dependencies": {
     "date-fns": "^4.4.0",

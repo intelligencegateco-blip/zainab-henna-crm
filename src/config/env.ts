@@ -25,6 +25,11 @@ export const env = {
   demoPassword: readString('VITE_DEMO_PASSWORD', 'henna2026'),
   /** Show the demo credentials on the sign-in page. Turn off for public demos. */
   showDemoLogin: readString('VITE_SHOW_DEMO_LOGIN', 'true') !== 'false',
+  /** Allow the shared demo account at all. Turn off once an owner account exists. */
+  demoLoginEnabled: readString('VITE_ENABLE_DEMO_LOGIN', 'true') !== 'false',
+  /** Owner account: hashed email + password from `npm run owner:credential`. Empty = no owner account. */
+  ownerCredential: readString('VITE_OWNER_CREDENTIAL', ''),
+  ownerName: readString('VITE_OWNER_NAME', 'Owner'),
   businessName: readString('VITE_BUSINESS_NAME', 'Zainab Henna'),
   defaultExchangeRate: readNumber('VITE_DEFAULT_EXCHANGE_RATE', 190),
 } as const;

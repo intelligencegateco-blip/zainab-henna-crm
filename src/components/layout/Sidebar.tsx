@@ -55,7 +55,10 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
           <Brushstroke className="nav-stroke" width={64} />
         </NavLink>
         <div className="sidebar-user">
-          <span className="sidebar-user-name">{user?.name ?? 'Zainab'}</span>
+          <span className="sidebar-user-name">
+            {user?.name ?? 'Zainab'}
+            <span className="sidebar-role">{user?.role === 'owner' ? 'Owner' : 'Demo'}</span>
+          </span>
           <span className="sidebar-user-email">{user?.email}</span>
           <button className="nav-item signout" onClick={signOut}>
             <LogOut aria-hidden />

@@ -363,3 +363,14 @@ main {
     font-size: var(--text-2xl);
   }
 }
+
+.sidebar-role {
+  margin-left: 0.5rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgba(160, 125, 76, 0.5);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-gold-light);
+  vertical-align: 1px;
+}
