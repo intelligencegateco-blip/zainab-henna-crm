@@ -374,3 +374,22 @@ main {
   color: var(--brand-gold-light);
   vertical-align: 1px;
 }
+
+.boot {
+  min-height: 100dvh;
+  background: var(--paper);
+}
+.role-notice {
+  margin: 1rem 2rem 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--info-wash);
+  color: var(--info);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+@media (max-width: 1024px) {
+  .role-notice {
+    margin: 1rem 1rem 0;
+  }
+}

@@ -4,6 +4,8 @@ Options -Indexes
 RewriteEngine On
 RewriteBase /
 RewriteRule ^index\.html$ - [L]
+# The PHP API has its own rules in api/.htaccess.
+RewriteRule ^api(/|$) - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]

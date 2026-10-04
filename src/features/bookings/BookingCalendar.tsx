@@ -26,7 +26,8 @@ export function BookingCalendar({
 }: {
   bookings: Booking[];
   onOpen: (b: Booking) => void;
-  onCreate: (date: string) => void;
+  /** Omit for read-only users. */
+  onCreate?: (date: string) => void;
 }) {
   const { data } = useCrmData();
   const [month, setMonth] = useState(() => startOfMonth(now()));
@@ -122,9 +123,11 @@ export function BookingCalendar({
       <div className="calendar-agenda">
         <div className="calendar-agenda-head">
           <h3>{formatDate(selected, 'EEEE d MMMM')}</h3>
-          <Button size="sm" variant="secondary" icon={<Plus />} onClick={() => onCreate(selected)}>
-            Book this day
-          </Button>
+          {onCreate && (
+            <Button size="sm" variant="secondary" icon={<Plus />} onClick={() => onCreate(selected)}>
+              Book this day
+            </Button>
+          )}
         </div>
         {selectedList.length === 0 ? (
           <p className="muted small">Nothing booked.</p>

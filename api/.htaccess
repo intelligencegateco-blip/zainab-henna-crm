@@ -1,0 +1,11 @@
+# Zainab CRM API: every request goes through index.php.
+Options -Indexes
+RewriteEngine On
+RewriteBase /api/
+RewriteRule ^index\.php$ - [L]
+RewriteRule ^ index.php [L]
+
+# Never serve configuration or library files directly.
+<FilesMatch "^(config.*\.php|.*\.sqlite)$">
+  Require all denied
+</FilesMatch>

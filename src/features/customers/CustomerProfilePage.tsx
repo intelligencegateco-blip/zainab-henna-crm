@@ -33,6 +33,7 @@ import {
 } from '../../lib/constants';
 import { formatDate, formatDateTime, formatTime, now, relativeDay, todayISO } from '../../lib/format';
 import { bookingBalance, indexById, isUpcomingBooking } from '../../lib/selectors';
+import { usePermissions } from '../../state/AuthContext';
 import { useCrmData } from '../../state/CrmContext';
 import type { Booking, PipelineStage } from '../../types/models';
 import { BookingFormModal } from '../bookings/BookingFormModal';
@@ -47,6 +48,7 @@ export function CustomerProfilePage() {
   const navigate = useNavigate();
   const contact = views.find((c) => c.id === id);
   const mover = useStageMover();
+  const { canWrite } = usePermissions();
   const [tab, setTab] = useState<Tab>('activity');
   const [editing, setEditing] = useState(false);
   const [bookingModal, setBookingModal] = useState<{ booking?: Booking } | null>(null);
@@ -120,9 +122,11 @@ export function CustomerProfilePage() {
               value={contact.stage}
               options={PIPELINE_STAGES.map((s, i) => ({ value: s.value, label: `${i + 1}. ${s.label}` }))}
               onChange={(e) => void mover.move(contact.id, e.target.value as PipelineStage)}
-              disabled={contact.archived}
+              disabled={contact.archived || !canWrite}
             />
           </div>
+          {canWrite && (
+          <>
           <Button icon={<Pencil />} onClick={() => setEditing(true)}>
             Edit
           </Button>
@@ -154,6 +158,8 @@ export function CustomerProfilePage() {
               </>
             )}
           </ActionMenu>
+          </>
+          )}
         </div>
       </header>
 
@@ -193,8 +199,8 @@ export function CustomerProfilePage() {
           {tab === 'activity' && <ActivityTab contactId={contact.id} />}
           {tab === 'bookings' && (
             <div className="stack">
-              <BookingList title="Upcoming" bookings={upcoming} onOpen={(b) => setBookingModal({ booking: b })} emptyText="No upcoming appointments." />
-              <BookingList title="Previous" bookings={previous} onOpen={(b) => setBookingModal({ booking: b })} emptyText="No past bookings yet." />
+              <BookingList title="Upcoming" bookings={upcoming} onOpen={canWrite ? (b) => setBookingModal({ booking: b }) : undefined} emptyText="No upcoming appointments." />
+              <BookingList title="Previous" bookings={previous} onOpen={canWrite ? (b) => setBookingModal({ booking: b }) : undefined} emptyText="No past bookings yet." />
             </div>
           )}
           {tab === 'followups' && <FollowUpsTab contactId={contact.id} />}
@@ -223,7 +229,7 @@ export function CustomerProfilePage() {
               <dd>{contact.lastContactAt ? formatDate(contact.lastContactAt) : '—'}</dd>
             </dl>
           </Panel>
-          <NotesPanel contactId={contact.id} notes={contact.notes} />
+          <NotesPanel contactId={contact.id} notes={contact.notes} readOnly={!canWrite} />
           <Panel title="Services purchased" as="h3">
             {purchased.length ? (
               <ul className="plain-list">
@@ -262,7 +268,7 @@ export function CustomerProfilePage() {
   );
 }
 
-function BookingList({ title, bookings, onOpen, emptyText }: { title: string; bookings: Booking[]; onOpen: (b: Booking) => void; emptyText: string }) {
+function BookingList({ title, bookings, onOpen, emptyText }: { title: string; bookings: Booking[]; onOpen?: (b: Booking) => void; emptyText: string }) {
   const { data } = useCrmData();
   const services = indexById(data.services);
   return (
@@ -275,7 +281,7 @@ function BookingList({ title, bookings, onOpen, emptyText }: { title: string; bo
         <ul className="booking-rows">
           {bookings.map((b) => (
             <li key={b.id}>
-              <button onClick={() => onOpen(b)}>
+              <button onClick={() => onOpen?.(b)} disabled={!onOpen}>
                 <span className="booking-date">
                   <span className="d">{formatDate(b.date, 'd')}</span>
                   <span className="m">{formatDate(b.date, 'MMM yy')}</span>
@@ -302,6 +308,7 @@ function BookingList({ title, bookings, onOpen, emptyText }: { title: string; bo
 
 function ActivityTab({ contactId }: { contactId: string }) {
   const { data, run } = useCrmData();
+  const { canWrite } = usePermissions();
   const items = useMemo(
     () => data.interactions.filter((i) => i.contactId === contactId).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)),
     [data.interactions, contactId],
@@ -319,7 +326,7 @@ function ActivityTab({ contactId }: { contactId: string }) {
 
   return (
     <div className="stack">
-      <Panel title="Log a conversation" as="h3" subtitle="Calls, messages or visits. Keeps the whole story in one place.">
+      {canWrite && <Panel title="Log a conversation" as="h3" subtitle="Calls, messages or visits. Keeps the whole story in one place.">
         <form
           className="log-form"
           noValidate
@@ -339,7 +346,7 @@ function ActivityTab({ contactId }: { contactId: string }) {
             </Button>
           </div>
         </form>
-      </Panel>
+      </Panel>}
 
       <Panel title="History" as="h3">
         {items.length === 0 ? (
@@ -371,6 +378,7 @@ function ActivityTab({ contactId }: { contactId: string }) {
 
 function FollowUpsTab({ contactId }: { contactId: string }) {
   const { data, run } = useCrmData();
+  const { canWrite } = usePermissions();
   const all = data.followUps.filter((f) => f.contactId === contactId);
   const open = all.filter((f) => !f.completedAt).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const done = all.filter((f) => f.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
@@ -385,7 +393,7 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
 
   return (
     <div className="stack">
-      <Panel title="Schedule a follow-up" as="h3">
+      {canWrite && <Panel title="Schedule a follow-up" as="h3">
         <form
           className="log-form"
           noValidate
@@ -406,7 +414,7 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
             </Button>
           </div>
         </form>
-      </Panel>
+      </Panel>}
 
       <Panel title="To do" as="h3">
         {open.length === 0 ? (
@@ -415,22 +423,26 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
           <ul className="followup-list">
             {open.map((f) => (
               <li key={f.id} className={f.dueDate < today ? 'overdue' : f.dueDate === today ? 'today' : ''}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  iconOnly
-                  icon={<Check />}
-                  onClick={() => void run((s) => s.completeFollowUp(f.id), 'Follow-up done').catch(() => {})}
-                >
-                  Mark done
-                </Button>
+                {canWrite ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    iconOnly
+                    icon={<Check />}
+                    onClick={() => void run((s) => s.completeFollowUp(f.id), 'Follow-up done').catch(() => {})}
+                  >
+                    Mark done
+                  </Button>
+                ) : (
+                  <span />
+                )}
                 <div>
                   <div className="cell-primary">{f.note || 'Follow up'}</div>
                   <div className="cell-sub">
                     {f.dueDate < today ? <span className="due overdue">Overdue since {formatDate(f.dueDate)}</span> : `Due ${formatDate(f.dueDate)}`}
                   </div>
                 </div>
-                <Button
+                {canWrite && <Button
                   size="sm"
                   variant="ghost"
                   iconOnly
@@ -438,7 +450,7 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
                   onClick={() => void run((s) => s.deleteFollowUp(f.id), 'Follow-up removed').catch(() => {})}
                 >
                   Remove follow-up
-                </Button>
+                </Button>}
               </li>
             ))}
           </ul>
@@ -459,7 +471,7 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
                     Due {formatDate(f.dueDate)}, done {formatDate(f.completedAt)}
                   </div>
                 </div>
-                <Button
+                {canWrite && <Button
                   size="sm"
                   variant="ghost"
                   iconOnly
@@ -467,7 +479,7 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
                   onClick={() => void run((s) => s.completeFollowUp(f.id, false), 'Follow-up reopened').catch(() => {})}
                 >
                   Reopen follow-up
-                </Button>
+                </Button>}
               </li>
             ))}
           </ul>
@@ -477,14 +489,14 @@ function FollowUpsTab({ contactId }: { contactId: string }) {
   );
 }
 
-function NotesPanel({ contactId, notes }: { contactId: string; notes: string }) {
+function NotesPanel({ contactId, notes, readOnly }: { contactId: string; notes: string; readOnly?: boolean }) {
   const { run } = useCrmData();
   const [value, setValue] = useState(notes);
   const [saving, setSaving] = useState(false);
   const dirty = value !== notes;
   return (
     <Panel title="Notes" as="h3">
-      <Textarea aria-label="Notes" value={value} onChange={(e) => setValue(e.target.value)} rows={5} placeholder="Preferences, allergies, design ideas…" />
+      <Textarea aria-label="Notes" value={value} readOnly={readOnly} onChange={(e) => setValue(e.target.value)} rows={5} placeholder="Preferences, allergies, design ideas…" />
       {dirty && (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
           <Button size="sm" variant="ghost" onClick={() => setValue(notes)} disabled={saving}>

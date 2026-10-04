@@ -14,6 +14,7 @@ import { downloadCsv, toCsv } from '../../lib/csv';
 import { inRange, resolveRange, type DateRangeValue } from '../../lib/dateRange';
 import { daysFromToday, formatDate, normalize, relativeDay, todayISO } from '../../lib/format';
 import type { ContactView } from '../../lib/selectors';
+import { usePermissions } from '../../state/AuthContext';
 import { useCrmData } from '../../state/CrmContext';
 import { LeadFormModal } from './LeadFormModal';
 
@@ -40,6 +41,7 @@ export function FollowUpCell({ date }: { date?: string }) {
 
 export function LeadsPage() {
   const { views, data, run } = useCrmData();
+  const { canWrite } = usePermissions();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const view = (params.get('view') as View) || 'all';
@@ -149,6 +151,7 @@ export function LeadsPage() {
               <button role="menuitem" onClick={() => navigate(`/leads/${c.id}`)}>
                 <Eye /> View profile
               </button>
+              {canWrite && (<>
               <button role="menuitem" onClick={() => { close(); setEditing(c); }}>
                 <Pencil /> Edit details
               </button>
@@ -165,6 +168,7 @@ export function LeadsPage() {
               <button role="menuitem" className="danger" onClick={() => { close(); setDeleting(c); }}>
                 <Trash2 /> Delete permanently
               </button>
+              </>)}
             </>
           )}
         </ActionMenu>
@@ -207,9 +211,11 @@ export function LeadsPage() {
             <Button icon={<Download />} onClick={exportCsv} disabled={!filtered.length}>
               Export CSV
             </Button>
-            <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)}>
-              New lead
-            </Button>
+            {canWrite && (
+              <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)}>
+                New lead
+              </Button>
+            )}
           </>
         }
       />
@@ -280,7 +286,7 @@ export function LeadsPage() {
               <EmptyState
                 title={view === 'archived' ? 'Nothing archived' : 'No one here yet'}
                 message={view === 'archived' ? 'Archived leads appear here and can be restored at any time.' : 'Add your first lead when someone asks about henna.'}
-                action={view !== 'archived' && <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)}>New lead</Button>}
+                action={view !== 'archived' && canWrite && <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)}>New lead</Button>}
               />
             )
           }

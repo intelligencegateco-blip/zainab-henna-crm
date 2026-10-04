@@ -11,7 +11,7 @@ import { computeDashboard } from '../../lib/analytics';
 import { INTERACTION_LABEL } from '../../lib/constants';
 import { formatDate, formatDateTime, formatPercent, formatTime, moneyParts, now, relativeDay, todayISO } from '../../lib/format';
 import { indexById } from '../../lib/selectors';
-import { useAuth } from '../../state/AuthContext';
+import { useAuth, usePermissions } from '../../state/AuthContext';
 import { useCrmData } from '../../state/CrmContext';
 
 function greeting() {
@@ -22,6 +22,7 @@ function greeting() {
 export function DashboardPage() {
   const { data, run } = useCrmData();
   const { user } = useAuth();
+  const { canWrite } = usePermissions();
   const navigate = useNavigate();
   const m = useMemo(() => computeDashboard(data), [data]);
   const contacts = indexById(data.contacts);
@@ -151,15 +152,17 @@ export function DashboardPage() {
                 const c = contacts.get(f.contactId);
                 return (
                   <li key={f.id} className={f.dueDate < today ? 'overdue' : 'today'}>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      iconOnly
-                      icon={<Check />}
-                      onClick={() => void run((s) => s.completeFollowUp(f.id), 'Follow-up done').catch(() => {})}
-                    >
-                      {`Mark follow-up with ${c?.fullName} done`}
-                    </Button>
+                    {canWrite && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        iconOnly
+                        icon={<Check />}
+                        onClick={() => void run((s) => s.completeFollowUp(f.id), 'Follow-up done').catch(() => {})}
+                      >
+                        {`Mark follow-up with ${c?.fullName} done`}
+                      </Button>
+                    )}
                     <div>
                       <Link to={`/leads/${f.contactId}`} className="cell-primary">
                         {c?.fullName}

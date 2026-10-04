@@ -1,10 +1,9 @@
 /**
- * Credential hashing for the owner login (Web Crypto, PBKDF2-SHA256).
+ * Password hashing for local mode's in-browser user store (Web Crypto, PBKDF2-SHA256).
+ * The live site uses the PHP API instead, which hashes with bcrypt on the server.
  *
- * The stored credential is `pbkdf2:<iterations>:<salt b64>:<hash b64>`, computed over
- * `<lowercased email>\n<password>`, so neither the email nor the password appears in
- * the shipped JavaScript. Generate one with `npm run owner:credential`.
- * scripts/owner-credential.mjs uses the same format; keep the two in step.
+ * Stored format: `pbkdf2:<iterations>:<salt b64>:<hash b64>`, computed over
+ * `<lowercased email>\n<password>`.
  */
 
 const encoder = new TextEncoder();

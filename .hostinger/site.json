@@ -1,5 +1,6 @@
 {
   "domain": "mistyrose-wildcat-480165.hostingersite.com",
   "username": "u332293086",
-  "type": "static"
+  "type": "php",
+  "database": "u332293086_zcrm"
 }

@@ -6,6 +6,7 @@ import { Money, PageHeader } from '../../components/ui/Misc';
 import { EVENT_LABEL, LEAD_SOURCES, PIPELINE_STAGES, SOURCE_LABEL } from '../../lib/constants';
 import { formatDate, formatUSD, normalize, relativeDay } from '../../lib/format';
 import type { ContactView } from '../../lib/selectors';
+import { usePermissions } from '../../state/AuthContext';
 import { useCrmData } from '../../state/CrmContext';
 import type { PipelineStage } from '../../types/models';
 import { FollowUpCell } from '../leads/LeadsPage';
@@ -14,6 +15,7 @@ import { useStageMover } from './useStageMover';
 export function PipelinePage() {
   const { views, data } = useCrmData();
   const mover = useStageMover();
+  const { canWrite } = usePermissions();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('');
   const [service, setService] = useState('');
@@ -58,7 +60,7 @@ export function PipelinePage() {
         title="Pipeline"
         subtitle={
           <>
-            Drag a card to move it, or use its menu. <strong className="num">{formatUSD(openValue)}</strong> in open inquiries.
+            {canWrite ? 'Drag a card to move it, or use its menu. ' : ''}<strong className="num">{formatUSD(openValue)}</strong> in open inquiries.
           </>
         }
       />
@@ -96,7 +98,7 @@ export function PipelinePage() {
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverStage(null);
               }}
-              onDrop={(e) => onDrop(e, stage.value)}
+              onDrop={(e) => canWrite && onDrop(e, stage.value)}
             >
               <header className="kanban-head">
                 <span className="kanban-step num" aria-hidden>
@@ -116,7 +118,7 @@ export function PipelinePage() {
                   <article
                     key={c.id}
                     className={`kanban-card ${dragId === c.id ? 'dragging' : ''}`}
-                    draggable
+                    draggable={canWrite}
                     onDragStart={(e) => {
                       e.dataTransfer.setData('text/plain', c.id);
                       e.dataTransfer.effectAllowed = 'move';
@@ -157,7 +159,7 @@ export function PipelinePage() {
                       <span className="small">
                         <FollowUpCell date={c.nextFollowUpDate} />
                       </span>
-                      <select
+                      {canWrite && <select
                         className="kanban-move"
                         aria-label={`Move ${c.fullName} to stage`}
                         value={c.stage}
@@ -168,7 +170,7 @@ export function PipelinePage() {
                             {i + 1}. {s.label}
                           </option>
                         ))}
-                      </select>
+                      </select>}
                     </div>
                   </article>
                 ))}

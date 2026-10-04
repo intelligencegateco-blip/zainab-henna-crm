@@ -285,6 +285,15 @@ export class LocalRepository implements CrmRepository {
     });
   }
 
+  clearCustomerData(): Promise<void> {
+    return this.mutate((db) => {
+      db.contacts = [];
+      db.bookings = [];
+      db.interactions = [];
+      db.followUps = [];
+    });
+  }
+
   async resetDemoData(): Promise<void> {
     await this.delay();
     this.cache = this.seed();

@@ -29,6 +29,7 @@ import { downloadCsv, toCsv } from '../../lib/csv';
 import { inRange, resolveRange, type DateRangeValue } from '../../lib/dateRange';
 import { daysFromToday, formatDate, formatTime, normalize, now, relativeDay, todayISO } from '../../lib/format';
 import { bookingBalance, indexById, isOpenBooking, isUpcomingBooking, round2 } from '../../lib/selectors';
+import { usePermissions } from '../../state/AuthContext';
 import { useCrmData } from '../../state/CrmContext';
 import type { Booking, BookingStatus } from '../../types/models';
 import { BookingCalendar } from './BookingCalendar';
@@ -44,6 +45,7 @@ interface Row extends Booking {
 
 export function BookingsPage() {
   const { data, run } = useCrmData();
+  const { canWrite } = usePermissions();
   const [params, setParams] = useSearchParams();
   const [mode, setMode] = useState<'list' | 'calendar'>(params.get('view') === 'calendar' ? 'calendar' : 'list');
   const [when, setWhen] = useState<When>((params.get('when') as When) || 'upcoming');
@@ -59,7 +61,7 @@ export function BookingsPage() {
   useEffect(() => {
     if (!bookingParam) return;
     const b = data.bookings.find((x) => x.id === bookingParam);
-    if (b) {
+    if (b && canWrite) {
       setMode('list');
       setModal({ booking: b });
     }
@@ -269,9 +271,11 @@ export function BookingsPage() {
                 Export CSV
               </Button>
             )}
-            <Button variant="primary" icon={<Plus />} onClick={() => setModal({})}>
-              New booking
-            </Button>
+            {canWrite && (
+              <Button variant="primary" icon={<Plus />} onClick={() => setModal({})}>
+                New booking
+              </Button>
+            )}
           </>
         }
       />
@@ -298,7 +302,11 @@ export function BookingsPage() {
 
       {mode === 'calendar' ? (
         <section className="panel">
-          <BookingCalendar bookings={data.bookings} onOpen={(b) => setModal({ booking: b })} onCreate={(date) => setModal({ date })} />
+          <BookingCalendar
+            bookings={data.bookings}
+            onOpen={(b) => canWrite && setModal({ booking: b })}
+            onCreate={canWrite ? (date) => setModal({ date }) : undefined}
+          />
         </section>
       ) : (
         <section className="panel">
@@ -339,10 +347,10 @@ export function BookingsPage() {
           )}
           <DataTable
             caption="Bookings"
-            columns={columns}
+            columns={canWrite ? columns : columns.filter((c) => c.key !== 'actions')}
             rows={filtered}
             rowKey={(b) => b.id}
-            onRowClick={(b) => setModal({ booking: b })}
+            onRowClick={canWrite ? (b) => setModal({ booking: b }) : undefined}
             initialSort={{ key: 'date', dir: when === 'past' ? 'desc' : 'asc' }}
             resetKey={`${when}|${query}|${status}|${service}|${eventType}|${owing}|${JSON.stringify(range)}`}
             key={when}
@@ -354,11 +362,11 @@ export function BookingsPage() {
                 action={
                   filtersActive ? (
                     <Button onClick={clear}>Clear filters</Button>
-                  ) : (
+                  ) : canWrite ? (
                     <Button variant="primary" icon={<Plus />} onClick={() => setModal({})}>
                       New booking
                     </Button>
-                  )
+                  ) : undefined
                 }
               />
             }

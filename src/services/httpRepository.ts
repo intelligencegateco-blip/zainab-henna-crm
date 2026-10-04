@@ -1,3 +1,5 @@
+import { createSeedData } from '../data/seed';
+import { now } from '../lib/format';
 import { ValidationError } from '../lib/validation';
 import type {
   Booking,
@@ -16,50 +18,80 @@ import type {
 } from '../types/models';
 import { ConflictError, NotFoundError, type CrmRepository } from './repository';
 
-/**
- * REST implementation of the repository, ready for a future backend.
- * Enable with VITE_DATA_SOURCE=api. The expected endpoints are documented in
- * README.md ("Backend integration") and mirror these methods 1:1.
- *
- * Error contract: 400/422 -> `{ fields: { [field]: message } }`,
- * 404 -> not found, 409 -> `{ message }` conflict.
- */
-export class HttpRepository implements CrmRepository {
-  private readonly baseUrl: string;
-  private readonly getToken: () => string | null;
+/** Fired when the server says the session is gone; AuthContext signs the user out. */
+export const UNAUTHORIZED_EVENT = 'crm:unauthorized';
 
-  constructor(baseUrl: string, getToken: () => string | null = () => null) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
-    this.getToken = getToken;
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
+/**
+ * JSON request to the PHP API (api/index.php).
+ * - Session cookie is sent automatically (same origin).
+ * - Writes carry X-Requested-With, which the server requires (CSRF protection).
+ * - `undefined` values are sent as null so a PATCH can clear optional fields.
+ *
+ * Error contract: 400/422 -> `{ fields }`, 401 -> signed out, 403 -> not allowed,
+ * 404 -> not found, 409 -> conflict, 429 -> too many attempts.
+ */
+export async function request<T>(
+  baseUrl: string,
+  method: string,
+  path: string,
+  body?: unknown,
+  options: { skipAuthEvent?: boolean } = {},
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
+      method,
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(method !== 'GET' ? { 'X-Requested-With': 'zainab-crm' } : {}),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body, (_k, v) => (v === undefined ? null : v)),
+    });
+  } catch {
+    throw new Error('Could not reach the server. Check your internet connection and try again.');
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const token = this.getToken();
-    let response: Response;
-    try {
-      response = await fetch(`${this.baseUrl}${path}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: body === undefined ? undefined : JSON.stringify(body),
-      });
-    } catch {
-      throw new Error('Could not reach the server. Check your internet connection and try again.');
-    }
+  if (response.status === 204) return undefined as T;
+  const payload = await response.json().catch(() => ({}));
+  if (response.ok) return payload as T;
 
-    if (response.status === 204) return undefined as T;
-    const payload = await response.json().catch(() => ({}));
-    if (response.ok) return payload as T;
+  const message: string = payload?.message ?? `The server returned an error (${response.status}).`;
+  // Any error that names fields (422 invalid, 409 duplicate, 403 role) is shown next to those fields.
+  if (payload?.fields && response.status !== 401) {
+    throw new ValidationError({ _form: message, ...payload.fields });
+  }
+  if (response.status === 400 || response.status === 422) {
+    throw new ValidationError({ _form: message });
+  }
+  if (response.status === 401) {
+    if (!options.skipAuthEvent) window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    throw new Error(message);
+  }
+  if (response.status === 403) throw new ForbiddenError(message);
+  if (response.status === 404) throw new NotFoundError('Record', path.split('/').pop() ?? '');
+  if (response.status === 409) throw new ConflictError(message);
+  throw new Error(message);
+}
 
-    if (response.status === 400 || response.status === 422) {
-      throw new ValidationError(payload.fields ?? { _form: payload.message ?? 'Check the highlighted fields.' });
-    }
-    if (response.status === 404) throw new NotFoundError('Record', path.split('/').pop() ?? '');
-    if (response.status === 409) throw new ConflictError(payload.message ?? 'This change conflicts with existing data.');
-    if (response.status === 401) throw new Error('Your session has expired. Sign in again.');
-    throw new Error(payload.message ?? `The server returned an error (${response.status}).`);
+/** REST implementation of the repository. Enable with VITE_DATA_SOURCE=api. */
+export class HttpRepository implements CrmRepository {
+  private readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    return request<T>(this.baseUrl, method, path, body);
   }
 
   getSnapshot() {
@@ -115,5 +147,18 @@ export class HttpRepository implements CrmRepository {
 
   updateSettings(patch: Partial<Settings>) {
     return this.request<Settings>('PATCH', '/settings', patch);
+  }
+
+  /** Replaces all CRM records on the server with fresh demo data (Admin/Owner). */
+  async resetDemoData() {
+    const seed = createSeedData(now());
+    const current = await this.getSnapshot();
+    await this.request<void>('POST', '/admin/replace-data', { ...seed, settings: current.settings });
+  }
+
+  /** Removes all customers, bookings, conversations and follow-ups; keeps services and settings. */
+  async clearCustomerData() {
+    const current = await this.getSnapshot();
+    await this.request<void>('POST', '/admin/replace-data', { services: current.services });
   }
 }

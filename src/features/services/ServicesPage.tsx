@@ -11,11 +11,13 @@ import { EmptyState } from '../../components/ui/States';
 import { useForm } from '../../hooks/useForm';
 import { formatDateTime, formatDuration } from '../../lib/format';
 import { groupBy, round2 } from '../../lib/selectors';
+import { usePermissions } from '../../state/AuthContext';
 import { useCrmData } from '../../state/CrmContext';
 import type { Service } from '../../types/models';
 
 export function ServicesPage() {
   const { data, run } = useCrmData();
+  const { canWrite, can } = usePermissions();
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [editing, setEditing] = useState<Service | 'new' | null>(null);
   const [deleting, setDeleting] = useState<Service | null>(null);
@@ -41,7 +43,7 @@ export function ServicesPage() {
         subtitle={
           <>
             Your price list. Prices are set in USD; bolívar amounts use the rate of Bs {exchangeRate.toLocaleString('es-VE')} per $1 (updated{' '}
-            {formatDateTime(exchangeRateUpdatedAt)}). <Link to="/settings">Change the rate</Link>
+            {formatDateTime(exchangeRateUpdatedAt)}){can('settings') ? <>. <Link to="/settings">Change the rate</Link></> : '.'}
           </>
         }
         actions={
@@ -56,9 +58,11 @@ export function ServicesPage() {
                 { value: 'inactive', label: 'Inactive' },
               ]}
             />
-            <Button variant="primary" icon={<Plus />} onClick={() => setEditing('new')}>
-              New service
-            </Button>
+            {canWrite && (
+              <Button variant="primary" icon={<Plus />} onClick={() => setEditing('new')}>
+                New service
+              </Button>
+            )}
           </>
         }
       />
@@ -68,7 +72,7 @@ export function ServicesPage() {
           <EmptyState
             title={filter === 'inactive' ? 'No inactive services' : 'No services yet'}
             message="Add the henna services you offer so leads and bookings can use them."
-            action={<Button variant="primary" onClick={() => setEditing('new')}>New service</Button>}
+            action={canWrite ? <Button variant="primary" onClick={() => setEditing('new')}>New service</Button> : undefined}
           />
         ) : (
           <ul>
@@ -94,7 +98,7 @@ export function ServicesPage() {
                     <span>
                       Earned <Money value={st.revenue} inline />
                     </span>
-                    <span className="price-actions">
+                    {canWrite && <span className="price-actions">
                       <ActiveToggle service={s} />
                       <Button size="sm" variant="ghost" icon={<Pencil />} onClick={() => setEditing(s)}>
                         Edit
@@ -102,7 +106,7 @@ export function ServicesPage() {
                       <Button size="sm" variant="ghost" iconOnly icon={<Trash2 />} onClick={() => setDeleting(s)}>
                         {`Delete ${s.name}`}
                       </Button>
-                    </span>
+                    </span>}
                   </div>
                 </li>
               );

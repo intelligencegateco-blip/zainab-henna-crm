@@ -10,7 +10,9 @@ dist-ssr
 !.env.example
 *.local
 
-# Test output
+# Test output & local databases
+.tmp/
+*.sqlite
 test-results/
 playwright-report/
 blob-report/
@@ -27,3 +29,6 @@ npm-debug.log*
 .idea
 .DS_Store
 *.sw?
+
+# Server secrets
+api/config.local.php

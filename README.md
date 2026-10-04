@@ -82,9 +82,7 @@ npm run build      # type-checks, then outputs static files to dist/
 npm run preview    # serves dist/ locally
 ```
 
-**Live demo:** https://mistyrose-wildcat-480165.hostingersite.com (Hostinger, static build; sign in with the owner account, the demo account is turned off there).
-
-**Owner account.** Run `npm run owner:credential -- you@example.com` to generate a strong password and its hash. Put the printed `VITE_OWNER_CREDENTIAL=...` line (plus `VITE_OWNER_NAME` and `VITE_ENABLE_DEMO_LOGIN=false`) in `.env.production.local`, then rebuild and redeploy. To change the password, run it again. Only the hash ships in the app; the session is browser-only until a real auth backend exists.
+**Live demo:** https://mistyrose-wildcat-480165.hostingersite.com (Hostinger: PHP API + MySQL; sign in with your user account).
 
 `dist/` is a static single-page app. `public/.htaccess` handles routing on Apache/LiteSpeed hosts such as Hostinger. When hosting it, rewrite unknown paths to `index.html` so links like `/leads/C-1005` work. (Netlify: `_redirects`; Vercel and Hostinger: an SPA rewrite rule.)
 
@@ -99,6 +97,8 @@ npm run preview    # serves dist/ locally
 | `npm run lint` | Oxlint |
 | `npm test` | Unit tests (Vitest): business rules, analytics, seed integrity |
 | `npm run test:e2e` | End-to-end tests (Playwright) of the main workflows in Google Chrome |
+| `npm run test:e2e:api` | Full-stack tests against the PHP API (roles, users, workflows) |
+| `npm run api` / `npm run dev:api` | Run the PHP API locally / run the app against it |
 | `npm run test:all` | All of the above |
 
 ## Configuration
@@ -108,13 +108,10 @@ All settings are read in [`src/config/env.ts`](src/config/env.ts), and defaults 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `VITE_DATA_SOURCE` | `local` | `local` = browser demo data; `api` = REST backend |
-| `VITE_API_BASE_URL` | `http://localhost:4000/api` | Backend base URL when `VITE_DATA_SOURCE=api` |
+| `VITE_API_BASE_URL` | `/api` | API base URL when `VITE_DATA_SOURCE=api` |
 | `VITE_MOCK_LATENCY_MS` | `250` | Simulated network delay for local data (keeps loading states realistic) |
-| `VITE_DEMO_EMAIL` / `VITE_DEMO_PASSWORD` | see above | Demo sign-in until real authentication exists |
+| `VITE_DEMO_EMAIL` / `VITE_DEMO_PASSWORD` | see above | Built-in Admin account in local mode only |
 | `VITE_SHOW_DEMO_LOGIN` | `true` | Show the demo credentials on the sign-in page; set `false` for public demos |
-| `VITE_ENABLE_DEMO_LOGIN` | `true` | Allow the shared demo account; set `false` on public builds |
-| `VITE_OWNER_CREDENTIAL` | empty | Owner sign-in (PBKDF2 hash of email + password) from `npm run owner:credential` |
-| `VITE_OWNER_NAME` | `Owner` | Name shown for the owner in the greeting and sidebar |
 | `VITE_BUSINESS_NAME` | `Zainab Henna` | Default business name in seed data |
 | `VITE_DEFAULT_EXCHANGE_RATE` | `190` | Default Bs per USD for seed data (editable in Settings) |
 
@@ -239,8 +236,9 @@ To rebrand, edit [`src/styles/theme.css`](src/styles/theme.css).
 ## Testing
 
 ```bash
-npm test           # 14 unit tests
-npm run test:e2e   # 9 end-to-end workflow tests (needs Google Chrome installed)
+npm test               # unit tests (business rules, analytics, password hashing)
+npm run test:e2e       # 9 workflow tests in local mode (needs Google Chrome)
+npm run test:e2e:api   # full stack: PHP API + SQLite + UI, role tests and the workflow suite (needs PHP 8.1+)
 ```
 
 The end-to-end suite covers every workflow on the launch checklist. It signs in (and rejects bad credentials), creates and edits a lead (with validation), moves a lead through the pipeline by menu and by drag-and-drop, and converts a lead into a booking. It creates, edits and completes a booking and confirms the revenue change. On a profile, it logs an interaction, saves notes, and schedules and completes a follow-up, then checks that the data survives a reload. It also covers search (accents and phone numbers), filters, sorting, pagination, archive/restore, the delete confirmation and global search. Finally, it checks analytics date ranges and the table view, the services price edit and active toggle, the effect of the exchange rate, the website-inquiry intake, and the mobile navigation (with no horizontal scroll). Dashboard metrics are checked before and after changes to confirm they update.
@@ -249,40 +247,73 @@ Playwright drives your installed Google Chrome (`channel: 'chrome'`), so no brow
 
 ## Backend integration
 
-To move from browser storage to a real database:
+The live site runs a **PHP 8 + MySQL API** ([`api/`](api/)) on the same Hostinger website as the frontend. Logins, roles and all CRM data live on the server, so every user sees the same records.
 
-1. Build a REST API (for example Node/Express or Fastify, with Postgres or MySQL through Prisma, or use Supabase) that implements the endpoints below.
-2. Set `VITE_DATA_SOURCE=api` and `VITE_API_BASE_URL=https://your-api/api`.
-3. Replace [`services/auth.ts`](src/services/auth.ts) with real authentication. `HttpRepository` already sends `Authorization: Bearer <token>`.
+### Users & roles
 
-The endpoints mirror `CrmRepository` one to one ([`httpRepository.ts`](src/services/httpRepository.ts)):
+Manage users in **Settings → Users** (Admins and Owners). New users get a temporary password, and they must choose their own the first time they sign in. Everyone can change their own password in **Settings → Your account**.
 
-| Method & path | Body → Response |
+| Role | Can do |
 | --- | --- |
-| `GET /snapshot` | → `{ contacts, bookings, services, interactions, followUps, settings }` |
-| `POST /contacts` · `PATCH /contacts/:id` · `DELETE /contacts/:id` | `ContactInput` / partial → `Contact` |
-| `POST /bookings` · `PATCH /bookings/:id` · `DELETE /bookings/:id` | `BookingInput` / partial → `Booking` |
-| `POST /services` · `PATCH /services/:id` · `DELETE /services/:id` | `ServiceInput` / partial → `Service` |
-| `POST /interactions` · `DELETE /interactions/:id` | `InteractionInput` → `Interaction` |
-| `POST /follow-ups` · `PATCH /follow-ups/:id` · `DELETE /follow-ups/:id` | `FollowUpInput` / partial → `FollowUp` |
-| `PATCH /settings` | partial → `Settings` |
+| **Admin** | Everything, including assigning the Admin role and managing Admin accounts |
+| **Owner** | Everything an Admin can, except assigning Admin or changing Admin accounts |
+| **Edit / Write** | Add and change customers, bookings, services, notes and follow-ups. No users, business settings or data reset |
+| **View / Read-only** | See everything, change nothing |
 
-**Error contract**
+Nobody can change their own role, disable their own account or delete themselves, and the last active Admin can't be removed. The rules are enforced by the server ([`api/lib/auth.php`](api/lib/auth.php)) and mirrored in the UI ([`src/lib/permissions.ts`](src/lib/permissions.ts)), which hides controls a role can't use.
 
-- `400`/`422` → `{ "fields": { "phone": "message" } }` (shown inline in forms)
-- `404` → not found
-- `409` → `{ "message": "..." }` (conflict, shown as a toast)
-- `401` → session expired
+### Security
 
-**Recommended backend responsibilities:**
+- **Passwords and sessions.** Passwords are hashed with bcrypt (`password_hash`). Sessions use HttpOnly, Secure, SameSite=Strict cookies, are renewed at sign-in, and end after 12 hours idle.
+- **Request protection.** Every write must carry an `X-Requested-With: zainab-crm` header, which blocks cross-site request forgery.
+- **Login lockout.** Sign-in is rate-limited: 8 failures per email and IP lock that pair out for 15 minutes.
+- **Disabled accounts.** Disabling a user ends their session on the next request.
+- **Validation.** All input is validated on the server, with the same rules as the forms.
+- **Secrets.** Database credentials live in `api/config.local.php`, which is git-ignored and blocked from download. `api/lib/` is also blocked.
 
-- Assign ids and timestamps.
-- Reuse the zod schemas in [`validation.ts`](src/lib/validation.ts).
-- Delete a contact's bookings, interactions and follow-ups along with the contact.
-- Refuse to delete services that have bookings.
-- Eventually, move the rules in `CrmService` server-side (the UI calls `CrmService`, so this is transparent).
+### API
 
-**When the data grows:** replace `GET /snapshot` with paginated list endpoints plus server-side search, filtering and aggregate analytics. Only `CrmContext` and the repository need to change.
+| Method & path | Who | Notes |
+| --- | --- | --- |
+| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` | anyone | session cookie |
+| `POST /api/auth/password` | signed in | `{ currentPassword, newPassword }` |
+| `GET /api/snapshot` | all roles | contacts, bookings, services, interactions, followUps, settings |
+| `POST/PATCH/DELETE /api/{contacts,bookings,services,interactions,follow-ups}[/:id]` | Admin, Owner, Edit | |
+| `PATCH /api/settings` | Admin, Owner | |
+| `POST /api/admin/replace-data` | Admin, Owner | demo reset / clear customer data |
+| `GET/POST /api/users` · `PATCH/DELETE /api/users/:id` · `POST /api/users/:id/reset-password` | Admin, Owner | role rules above |
+| `POST /api/setup` | setup token | one time: creates tables and the first users; refuses once users exist |
+| `GET /api/health` | anyone | `{ ok, ready }` |
+
+Errors come back as `{ message, fields? }`: 401 means signed out, 403 not allowed, 404 not found, 409 conflict, 422 invalid, 429 too many attempts.
+
+### Run the full stack locally
+
+You need PHP 8.1+ with `pdo_sqlite`; locally it uses SQLite, so no MySQL is required.
+
+```bash
+cp api/config.example.php api/config.local.php   # set 'dsn' => 'sqlite:' . __DIR__ . '/dev.sqlite', secure_cookies => false
+npm run api        # PHP API on http://127.0.0.1:8000
+npm run dev:api    # app in API mode on http://localhost:5173 (proxies /api)
+```
+
+Then create the first users once (this also loads the demo data):
+
+```bash
+node scripts/seed-json.mjs > /tmp/seed.json
+# POST /api/setup with header X-Setup-Token and body {"users":[{"name":"…","email":"…","role":"admin"}],"data":<seed.json>}
+```
+
+Without PHP, `npm run dev` still runs everything in the browser (local mode) with a built-in Admin account.
+
+### Deploy to Hostinger
+
+1. Create a MySQL database for the website. Put its name, user and password in `api/config.local.php`, with host `127.0.0.1` and a long random `setup_token`.
+2. Build with `.env.production.local` containing `VITE_DATA_SOURCE=api`, `VITE_API_BASE_URL=/api` and `VITE_SHOW_DEMO_LOGIN=false`, then run `npm run build`.
+3. Zip `dist/` plus `api/` (including `config.local.php`) so that `index.html` and `api/` sit at the root of the zip. Upload it to `public_html` and extract it.
+4. Call `POST /api/setup` once, as above.
+
+The database schema works on both MySQL and SQLite ([`api/lib/db.php`](api/lib/db.php)).
 
 ## Website integration
 

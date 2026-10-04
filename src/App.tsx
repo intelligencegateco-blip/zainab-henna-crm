@@ -18,8 +18,9 @@ const ServicesPage = lazy(() => import('./features/services/ServicesPage').then(
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, status } = useAuth();
   const location = useLocation();
+  if (status === 'loading') return <div className="boot" aria-busy="true" aria-label="Loading" />;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   return <CrmProvider>{children}</CrmProvider>;
 }

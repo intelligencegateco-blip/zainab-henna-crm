@@ -1,6 +1,7 @@
 import { BarChart3, CalendarDays, Columns3, LayoutDashboard, LogOut, Palette, Settings, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { todayISO } from '../../lib/format';
+import { ROLE_LABEL } from '../../lib/permissions';
 import { useAuth } from '../../state/AuthContext';
 import { useCrm } from '../../state/CrmContext';
 import { Brushstroke } from '../ui/Ornament';
@@ -57,10 +58,10 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
         <div className="sidebar-user">
           <span className="sidebar-user-name">
             {user?.name ?? 'Zainab'}
-            <span className="sidebar-role">{user?.role === 'owner' ? 'Owner' : 'Demo'}</span>
+            {user && <span className="sidebar-role">{ROLE_LABEL[user.role]}</span>}
           </span>
           <span className="sidebar-user-email">{user?.email}</span>
-          <button className="nav-item signout" onClick={signOut}>
+          <button className="nav-item signout" onClick={() => void signOut()}>
             <LogOut aria-hidden />
             <span>Sign out</span>
           </button>

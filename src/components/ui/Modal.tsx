@@ -80,9 +80,11 @@ export function Modal({ open, onClose, title, description, size = 'md', footer, 
             <h2 id={titleId}>{title}</h2>
             {description && <p>{description}</p>}
           </div>
-          <Button variant="ghost" iconOnly icon={<X />} onClick={onClose} disabled={locked}>
-            Close
-          </Button>
+          {!locked && (
+            <Button variant="ghost" iconOnly icon={<X />} onClick={onClose}>
+              Close
+            </Button>
+          )}
         </div>
         {children && <div className="modal-body">{children}</div>}
         {footer && <div className="modal-foot">{footer}</div>}

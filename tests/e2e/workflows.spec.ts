@@ -1,10 +1,32 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createSeedData } from '../../src/data/seed';
+
+/**
+ * Runs in local mode (playwright.config.ts) and against the PHP API
+ * (playwright.api.config.ts, port 5175). In API mode each test signs in with a
+ * real account and starts from fresh demo data loaded through the API.
+ */
+const apiMode = () => test.info().project.use.baseURL?.includes(':5175') ?? false;
+
+test.beforeEach(async ({ request }) => {
+  if (!apiMode()) return;
+  const headers = { 'X-Requested-With': 'zainab-crm' };
+  const login = await request.post('/api/auth/login', { headers, data: { email: 'e2e@test.example', password: 'Workflow-pass-2026' } });
+  expect(login.ok()).toBe(true);
+  const reset = await request.post('/api/admin/replace-data', { headers, data: createSeedData(new Date()) });
+  expect(reset.status()).toBe(204);
+});
 
 async function signIn(page: Page) {
   await page.goto('/login');
-  await page.getByRole('button', { name: 'Fill in demo details' }).click();
+  if (apiMode()) {
+    await page.getByLabel('Email').fill('e2e@test.example');
+    await page.getByLabel('Password').fill('Workflow-pass-2026');
+  } else {
+    await page.getByRole('button', { name: 'Fill in demo details' }).click();
+  }
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Zainab');
+  await expect(page.locator('.today-band')).toBeVisible();
 }
 
 /** Reads a dashboard metric tile's number. */
@@ -17,6 +39,7 @@ async function metric(page: Page, label: string): Promise<string> {
 const toNumber = (s: string) => Number(s.replace(/[^0-9.]/g, ''));
 
 test('sign-in rejects wrong credentials and accepts the demo ones', async ({ page }) => {
+  test.skip(apiMode(), 'Covered by the role tests in API mode');
   await page.goto('/');
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel('Email').fill('someone@example.com');

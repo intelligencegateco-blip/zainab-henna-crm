@@ -7,7 +7,7 @@ import { env } from '../../config/env';
 import { useAuth } from '../../state/AuthContext';
 
 export function LoginPage() {
-  const { user, signIn } = useAuth();
+  const { user, signIn, status } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -16,6 +16,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  if (status === 'loading') return <div className="boot" aria-busy="true" aria-label="Loading" />;
   if (user) return <Navigate to={from} replace />;
 
   const submit = async (e: React.FormEvent) => {
@@ -62,7 +63,7 @@ export function LoginPage() {
           <Button type="submit" variant="primary" block loading={busy}>
             Sign in
           </Button>
-          {env.dataSource === 'local' && env.demoLoginEnabled && env.showDemoLogin && (
+          {env.dataSource === 'local' && env.showDemoLogin && (
             <div className="login-demo">
               <p>
                 Demo access: <code>{env.demoEmail}</code> / <code>{env.demoPassword}</code>

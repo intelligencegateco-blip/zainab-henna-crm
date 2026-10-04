@@ -5,6 +5,8 @@ import { defineConfig } from '@playwright/test';
  * Uses the installed Google Chrome (channel: 'chrome'), so no browser
  * download is needed. Each test starts with fresh demo data.
  */
+const baseEnv = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined)) as Record<string, string>;
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 45_000,
@@ -20,6 +22,6 @@ export default defineConfig({
     command: 'npx vite --port 5174 --strictPort',
     url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
-    env: { VITE_MOCK_LATENCY_MS: '30' },
+    env: { ...baseEnv, VITE_MOCK_LATENCY_MS: '30' },
   },
 });

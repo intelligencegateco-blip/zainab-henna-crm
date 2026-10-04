@@ -49,8 +49,10 @@ export interface CrmRepository {
 
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
 
-  /** Demo-only: restore the sample data. Backends may omit this. */
+  /** Replace all CRM records with the sample data (Admin/Owner). */
   resetDemoData?(): Promise<void>;
+  /** Remove customers, bookings, conversations and follow-ups; keep services and settings. */
+  clearCustomerData?(): Promise<void>;
 }
 
 export class NotFoundError extends Error {
