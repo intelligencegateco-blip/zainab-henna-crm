@@ -82,7 +82,9 @@ npm run build      # type-checks, then outputs static files to dist/
 npm run preview    # serves dist/ locally
 ```
 
-`dist/` is a static single-page app. When hosting it, rewrite unknown paths to `index.html` so links like `/leads/C-1005` work. (Netlify: `_redirects`; Vercel and Hostinger: an SPA rewrite rule.)
+**Live demo:** https://mistyrose-wildcat-480165.hostingersite.com (Hostinger, static build; the sign-in hint is hidden there; ask the owner for the demo password).
+
+`dist/` is a static single-page app. `public/.htaccess` handles routing on Apache/LiteSpeed hosts such as Hostinger. When hosting it, rewrite unknown paths to `index.html` so links like `/leads/C-1005` work. (Netlify: `_redirects`; Vercel and Hostinger: an SPA rewrite rule.)
 
 ## Scripts
 
@@ -107,6 +109,7 @@ All settings are read in [`src/config/env.ts`](src/config/env.ts), and defaults 
 | `VITE_API_BASE_URL` | `http://localhost:4000/api` | Backend base URL when `VITE_DATA_SOURCE=api` |
 | `VITE_MOCK_LATENCY_MS` | `250` | Simulated network delay for local data (keeps loading states realistic) |
 | `VITE_DEMO_EMAIL` / `VITE_DEMO_PASSWORD` | see above | Demo sign-in until real authentication exists |
+| `VITE_SHOW_DEMO_LOGIN` | `true` | Show the demo credentials on the sign-in page; set `false` for public demos |
 | `VITE_BUSINESS_NAME` | `Zainab Henna` | Default business name in seed data |
 | `VITE_DEFAULT_EXCHANGE_RATE` | `190` | Default Bs per USD for seed data (editable in Settings) |
 

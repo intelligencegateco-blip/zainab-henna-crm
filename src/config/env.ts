@@ -23,6 +23,8 @@ export const env = {
   mockLatencyMs: Math.max(0, readNumber('VITE_MOCK_LATENCY_MS', 250)),
   demoEmail: readString('VITE_DEMO_EMAIL', 'zainab@zainabhenna.example'),
   demoPassword: readString('VITE_DEMO_PASSWORD', 'henna2026'),
+  /** Show the demo credentials on the sign-in page. Turn off for public demos. */
+  showDemoLogin: readString('VITE_SHOW_DEMO_LOGIN', 'true') !== 'false',
   businessName: readString('VITE_BUSINESS_NAME', 'Zainab Henna'),
   defaultExchangeRate: readNumber('VITE_DEFAULT_EXCHANGE_RATE', 190),
 } as const;
